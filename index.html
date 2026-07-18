@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đồng Hồ Đếm Ngược Cho Bé</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Đổi từ Fredoka One sang Baloo 2 để hỗ trợ Tiếng Việt tốt nhất -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@400;700;900&display=swap"
+        rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/canvas-confetti/1.6.0/confetti.browser.min.js"></script>
+    <!-- Thêm Tone.js để tạo âm thanh trực tiếp thay vì dùng link ngoài -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+
+    <style>
+        body {
+            font-family: 'Nunito', sans-serif;
+            /* Nền bầu trời xanh ngát */
+            background: linear-gradient(180deg, #87CEEB 0%, #E0F6FF 100%);
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        h1,
+        .timer-text {
+            font-family: 'Baloo 2', cursive;
+            font-weight: 800;
+        }
+
+        /* Hiệu ứng đám mây trôi */
+        .cloud {
+            position: absolute;
+            background: white;
+            border-radius: 50px;
+            opacity: 0.8;
+            animation: float-cloud linear infinite;
+        }
+
+        .cloud::before,
+        .cloud::after {
+            content: '';
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+        }
+
+        .cloud1 {
+            top: 10%;
+            width: 120px;
+            height: 40px;
+            animation-duration: 40s;
+            animation-delay: -10s;
+        }
+
+        .cloud1::before {
+            width: 50px;
+            height: 50px;
+            top: -20px;
+            left: 15px;
+        }
+
+        .cloud1::after {
+            width: 70px;
+            height: 70px;
+            top: -30px;
+            right: 15px;
+        }
+
+        .cloud2 {
+            top: 25%;
+            width: 180px;
+            height: 60px;
+            animation-duration: 55s;
+            animation-delay: -30s;
+            opacity: 0.6;
+            transform: scale(0.8);
+        }
+
+        .cloud2::before {
+            width: 70px;
+            height: 70px;
+            top: -30px;
+            left: 20px;
+        }
+
+        .cloud2::after {
+            width: 100px;
+            height: 100px;
+            top: -45px;
+            right: 20px;
+        }
+
+        .cloud3 {
+            top: 15%;
+            width: 100px;
+            height: 35px;
+            animation-duration: 35s;
+            animation-delay: -5s;
+            opacity: 0.9;
+            transform: scale(0.6);
+        }
+
+        .cloud3::before {
+            width: 40px;
+            height: 40px;
+            top: -15px;
+            left: 10px;
+        }
+
+        .cloud3::after {
+            width: 60px;
+            height: 60px;
+            top: -25px;
+            right: 10px;
+        }
+
+        @keyframes float-cloud {
+            0% {
+                left: -200px;
+            }
+
+            100% {
+                left: 100vw;
+            }
+        }
+
+        /* Vòng tròn đếm ngược */
+        .timer-circle {
+            position: relative;
+            width: 280px;
+            height: 280px;
+            background: white;
+            border-radius: 50%;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1), inset 0 0 0 15px #FFE4E1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            border: 8px solid #FF9800;
+            /* Viền cam nổi bật */
+        }
+
+        /* SVG Ring cho thanh tiến trình */
+        .progress-ring {
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform: rotate(-90deg);
+            /* Bắt đầu từ đỉnh */
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .progress-ring__circle {
+            transition: stroke-dashoffset 1s linear;
+            stroke: #4CAF50;
+            /* Màu xanh lá cây dễ thương */
+            stroke-width: 16;
+            stroke-linecap: round;
+            fill: transparent;
+        }
+
+        /* Cảnh vật dưới đất */
+        .ground {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 20vh;
+            background: #8BC34A;
+            border-radius: 50% 50% 0 0 / 20px 20px 0 0;
+            z-index: 1;
+        }
+
+        .grass {
+            position: absolute;
+            bottom: 20vh;
+            width: 100%;
+            height: 30px;
+            background-image: radial-gradient(circle at 10px 0, transparent 10px, #8BC34A 11px);
+            background-size: 20px 100%;
+            z-index: 1;
+        }
+
+        /* Nhân vật nhún nhảy 2 bên */
+        .char-bounce {
+            animation: bounce 2s infinite ease-in-out;
+            display: inline-block;
+        }
+
+        @keyframes bounce {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-20px);
+            }
+        }
+
+        /* Buttons */
+        .btn-cute {
+            font-family: 'Baloo 2', cursive;
+            font-weight: 700;
+            transition: transform 0.1s, box-shadow 0.1s;
+            box-shadow: 0 6px 0px rgba(0, 0, 0, 0.2);
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-cute:active {
+            transform: translateY(6px);
+            box-shadow: 0 0px 0px rgba(0, 0, 0, 0.2);
+        }
+
+        .pulse-text {
+            animation: pulse-color 1s infinite alternate;
+        }
+
+        @keyframes pulse-color {
+            0% {
+                color: #FF5252;
+                transform: scale(1);
+            }
+
+            100% {
+                color: #FF1744;
+                transform: scale(1.1);
+            }
+        }
+    </style>
+</head>
+
+<body class="w-full h-screen flex flex-col items-center justify-center relative">
+
+    <!-- Bầu trời và mây -->
+    <div class="cloud cloud1"></div>
+    <div class="cloud cloud2"></div>
+    <div class="cloud cloud3"></div>
+
+    <!-- Ông mặt trời -->
+    <div class="absolute top-10 right-10 text-6xl animate-spin" style="animation-duration: 20s;">☀️</div>
+
+    <!-- Tiêu đề -->
+    <h1
+        class="text-4xl md:text-5xl text-yellow-500 mb-8 z-10 text-center drop-shadow-md bg-white/60 px-6 py-2 rounded-full border-4 border-yellow-400">
+        Trò Chơi Bắt Đầu! 🎈
+    </h1>
+
+    <!-- Khu vực Đồng hồ -->
+    <div class="relative z-10 flex flex-col items-center">
+        <div class="timer-circle mb-8 bg-white">
+            <!-- Vòng tròn hiển thị tiến trình -->
+            <svg class="progress-ring" width="280" height="280">
+                <circle class="progress-ring__circle" r="126" cx="140" cy="140"></circle>
+            </svg>
+
+            <!-- Chữ hiển thị thời gian -->
+            <div class="flex flex-col items-center justify-center z-20">
+                <span id="time-display" class="timer-text text-7xl text-blue-500 tracking-wider">03:00</span>
+                <span id="message-display" class="font-bold text-gray-500 text-lg mt-2 h-6">Sẵn sàng nhé!</span>
+            </div>
+        </div>
+
+        <!-- Các nút điều khiển -->
+        <div class="flex gap-4 z-20">
+            <button id="btn-start"
+                class="btn-cute bg-green-400 hover:bg-green-500 text-white text-xl py-3 px-8 rounded-full border-4 border-green-600">
+                Bắt Đầu
+            </button>
+            <button id="btn-pause"
+                class="btn-cute bg-yellow-400 hover:bg-yellow-500 text-white text-xl py-3 px-8 rounded-full border-4 border-yellow-600 hidden">
+                Tạm Dừng
+            </button>
+            <button id="btn-reset"
+                class="btn-cute bg-red-400 hover:bg-red-500 text-white text-xl py-3 px-8 rounded-full border-4 border-red-600">
+                Chơi Lại
+            </button>
+        </div>
+    </div>
+
+    <!-- Cảnh vật dưới đất -->
+    <div class="grass"></div>
+    <div class="ground flex justify-around items-end pb-4">
+        <!-- Vài bông hoa hoặc cây -->
+        <div class="text-4xl">🌷</div>
+        <div class="text-5xl mb-2">🌳</div>
+        <div class="text-4xl">🌼</div>
+        <div class="text-5xl mb-1">🍄</div>
+        <div class="text-4xl">🌻</div>
+    </div>
+
+    <!-- Nhân vật 2 bên (Gấu và Hổ) -->
+    <div class="absolute bottom-[15vh] left-[5%] md:left-[15%] z-10 text-center char-bounce">
+        <div id="left-char" class="text-7xl md:text-8xl drop-shadow-md">🐻</div>
+    </div>
+    <div class="absolute bottom-[15vh] right-[5%] md:right-[15%] z-10 text-center char-bounce"
+        style="animation-delay: 0.5s">
+        <div id="right-char" class="text-7xl md:text-8xl drop-shadow-md">🐯</div>
+    </div>
+
+    <script>
+        // Thời gian mặc định: 3 phút = 180 giây
+        const TOTAL_SECONDS = 3 * 60;
+        let timeRemaining = TOTAL_SECONDS;
+        let timerInterval = null;
+        let isRunning = false;
+
+        // Các phần tử DOM
+        const timeDisplay = document.getElementById('time-display');
+        const messageDisplay = document.getElementById('message-display');
+        const btnStart = document.getElementById('btn-start');
+        const btnPause = document.getElementById('btn-pause');
+        const btnReset = document.getElementById('btn-reset');
+        const circle = document.querySelector('.progress-ring__circle');
+        const leftChar = document.getElementById('left-char');
+        const rightChar = document.getElementById('right-char');
+
+        const clickSynth = new Tone.Synth({
+            oscillator: { type: 'sine' },
+            envelope: { attack: 0.01, decay: 0.1, sustain: 0, release: 0.1 }
+        }).toDestination();
+
+        const tickSynth = new Tone.Synth({
+            oscillator: { type: 'triangle' },
+            envelope: { attack: 0.01, decay: 0.05, sustain: 0, release: 0.05 }
+        }).toDestination();
+        tickSynth.volume.value = -12; // Giảm âm lượng tiếng tick cho êm tai
+
+        const tadaSynth = new Tone.PolySynth(Tone.Synth, {
+            oscillator: { type: 'triangle' },
+            envelope: { attack: 0.05, decay: 0.2, sustain: 0.2, release: 1.5 }
+        }).toDestination();
+        tadaSynth.volume.value = -5;
+
+        // Hàm phát âm thanh khi click nút
+        function playClick() {
+            try { clickSynth.triggerAttackRelease("C6", "32n"); } catch (e) { }
+        }
+
+        // Tính toán chu vi vòng tròn cho hiệu ứng thanh tiến trình
+        const radius = circle.r.baseVal.value;
+        const circumference = radius * 2 * Math.PI;
+        circle.style.strokeDasharray = `${circumference} ${circumference}`;
+        circle.style.strokeDashoffset = circumference; // Bắt đầu ở mức đầy
+
+        // Khởi tạo hiển thị ban đầu
+        updateDisplay();
+        setProgress(1); // 100%
+
+        // Định dạng thời gian MM:SS
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60);
+            const s = seconds % 60;
+            return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+
+        // Cập nhật giao diện đếm ngược
+        function updateDisplay() {
+            timeDisplay.textContent = formatTime(timeRemaining);
+
+            // Cập nhật màu sắc dựa trên thời gian còn lại
+            if (timeRemaining > 60) {
+                timeDisplay.className = "timer-text text-7xl text-blue-500 tracking-wider";
+                circle.style.stroke = "#4CAF50"; // Xanh lá
+                messageDisplay.textContent = "Cố lên nhé!";
+            } else if (timeRemaining > 15) {
+                timeDisplay.className = "timer-text text-7xl text-orange-500 tracking-wider";
+                circle.style.stroke = "#FF9800"; // Cam
+                messageDisplay.textContent = "Nhanh lên nào!";
+            } else if (timeRemaining > 0) {
+                timeDisplay.className = "timer-text text-7xl text-red-500 tracking-wider pulse-text";
+                circle.style.stroke = "#F44336"; // Đỏ
+                messageDisplay.textContent = "Sắp hết giờ rồi!!!";
+                // Đổi tốc độ nhảy khi hồi hộp
+                leftChar.parentElement.style.animationDuration = "0.5s";
+                rightChar.parentElement.style.animationDuration = "0.5s";
+            } else {
+                timeDisplay.className = "timer-text text-7xl text-red-600 tracking-wider";
+                circle.style.stroke = "#F44336";
+                messageDisplay.textContent = "HẾT GIỜ!";
+                leftChar.textContent = "🎉";
+                rightChar.textContent = "🎊";
+            }
+        }
+
+        // Cập nhật thanh tiến trình hình tròn (percent từ 0 đến 1)
+        function setProgress(percent) {
+            const offset = circumference - percent * circumference;
+            circle.style.strokeDashoffset = offset;
+        }
+
+        // Hàm bắt đầu đếm
+        async function startTimer() {
+            await Tone.start(); // Khởi tạo AudioContext cho phép phát nhạc (bắt buộc bởi trình duyệt)
+            playClick();
+
+            if (isRunning) return;
+            if (timeRemaining <= 0) timeRemaining = TOTAL_SECONDS; // Nếu đã hết, reset rồi chạy
+
+            isRunning = true;
+            btnStart.classList.add('hidden');
+            btnPause.classList.remove('hidden');
+
+            // Đặt lại mặt cười và tốc độ cho 2 nhân vật
+            leftChar.textContent = "🐻";
+            rightChar.textContent = "🐯";
+            leftChar.parentElement.style.animationDuration = "1s";
+            rightChar.parentElement.style.animationDuration = "1s";
+
+            timerInterval = setInterval(() => {
+                timeRemaining--;
+
+                const percent = timeRemaining / TOTAL_SECONDS;
+                setProgress(percent);
+                updateDisplay();
+
+                // Âm thanh tick tock 10 giây cuối bằng Tone.js
+                if (timeRemaining > 0 && timeRemaining <= 10) {
+                    try { tickSynth.triggerAttackRelease("E6", "32n"); } catch (e) { }
+                }
+
+                if (timeRemaining <= 0) {
+                    endTimer();
+                }
+            }, 1000);
+        }
+
+        // Hàm tạm dừng
+        function pauseTimer() {
+            playClick();
+            if (!isRunning) return;
+
+            clearInterval(timerInterval);
+            isRunning = false;
+            btnStart.classList.remove('hidden');
+            btnPause.classList.add('hidden');
+
+            // Tốc độ nhảy chậm lại khi tạm dừng
+            leftChar.parentElement.style.animationDuration = "2s";
+            rightChar.parentElement.style.animationDuration = "2s";
+            messageDisplay.textContent = "Đang nghỉ giải lao...";
+        }
+
+        // Hàm chơi lại (reset)
+        async function resetTimer() {
+            await Tone.start();
+            playClick();
+            clearInterval(timerInterval);
+            isRunning = false;
+            timeRemaining = TOTAL_SECONDS;
+
+            btnStart.classList.remove('hidden');
+            btnPause.classList.add('hidden');
+
+            leftChar.textContent = "🐻";
+            rightChar.textContent = "🐯";
+            leftChar.parentElement.style.animationDuration = "2s";
+            rightChar.parentElement.style.animationDuration = "2s";
+
+            messageDisplay.textContent = "Sẵn sàng nhé!";
+            timeDisplay.classList.remove("pulse-text");
+
+            setProgress(1);
+            updateDisplay();
+        }
+
+        // Hàm khi hết giờ
+        function endTimer() {
+            clearInterval(timerInterval);
+            isRunning = false;
+            btnStart.classList.remove('hidden');
+            btnPause.classList.add('hidden');
+
+            // Phát âm thanh chiến thắng (Tada)
+            try {
+                const now = Tone.now();
+                tadaSynth.triggerAttackRelease(["C4", "E4", "G4", "C5"], "8n", now);
+                tadaSynth.triggerAttackRelease(["C4", "E4", "G4", "C5", "E5", "G5"], "2n", now + 0.2);
+            } catch (e) { }
+
+            // Hiệu ứng pháo giấy (Confetti)
+            triggerConfetti();
+        }
+
+        // Hiệu ứng pháo giấy ăn mừng
+        function triggerConfetti() {
+            var duration = 3 * 1000;
+            var animationEnd = Date.now() + duration;
+            var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 100 };
+
+            function randomInRange(min, max) {
+                return Math.random() * (max - min) + min;
+            }
+
+            var interval = setInterval(function () {
+                var timeLeft = animationEnd - Date.now();
+
+                if (timeLeft <= 0) {
+                    return clearInterval(interval);
+                }
+
+                var particleCount = 50 * (timeLeft / duration);
+                confetti(Object.assign({}, defaults, {
+                    particleCount,
+                    origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
+                }));
+                confetti(Object.assign({}, defaults, {
+                    particleCount,
+                    origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
+                }));
+            }, 250);
+        }
+
+        // Gắn sự kiện cho các nút
+        btnStart.addEventListener('click', startTimer);
+        btnPause.addEventListener('click', pauseTimer);
+        btnReset.addEventListener('click', resetTimer);
+
+    </script>
+</body>
+
+</html>
