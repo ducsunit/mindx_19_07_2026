@@ -246,12 +246,6 @@
     <!-- Nhạc Nền -->
     <audio id="bg-music" src="music.mp3" loop></audio>
 
-    <!-- Nút Loa -->
-    <button id="btn-sound"
-        class="absolute top-4 right-4 md:top-8 md:right-8 z-50 bg-white/90 p-3 rounded-full shadow-lg border-2 border-blue-200 hover:scale-105 transition-transform text-3xl flex items-center justify-center w-14 h-14 md:w-16 md:h-16">
-        🔇
-    </button>
-
     <!-- Bầu trời và mây -->
     <div class="cloud cloud1"></div>
     <div class="cloud cloud2"></div>
@@ -336,7 +330,6 @@
         const rightChar = document.getElementById('right-char');
 
         const bgMusic = document.getElementById('bg-music');
-        const btnSound = document.getElementById('btn-sound');
         let isMusicPlaying = false;
 
         const clickSynth = new Tone.Synth({
@@ -366,16 +359,12 @@
             if (isMusicPlaying) {
                 bgMusic.pause();
                 isMusicPlaying = false;
-                btnSound.textContent = "🔇";
             } else {
                 bgMusic.play().then(() => {
                     isMusicPlaying = true;
-                    btnSound.textContent = "🔊";
                 }).catch(e => console.log("Lỗi phát nhạc:", e));
             }
         }
-
-        btnSound.addEventListener('click', toggleMusic);
 
         // Tính toán chu vi vòng tròn cho hiệu ứng thanh tiến trình
         const radius = circle.r.baseVal.value;
@@ -474,6 +463,10 @@
             playClick();
             if (!isRunning) return;
 
+            if (isMusicPlaying) {
+                toggleMusic();
+            }
+
             clearInterval(timerInterval);
             isRunning = false;
             btnStart.classList.remove('hidden');
@@ -489,6 +482,11 @@
         async function resetTimer() {
             await Tone.start();
             playClick();
+
+            if (isMusicPlaying) {
+                toggleMusic();
+            }
+
             clearInterval(timerInterval);
             isRunning = false;
             timeRemaining = TOTAL_SECONDS;
@@ -514,6 +512,10 @@
             isRunning = false;
             btnStart.classList.remove('hidden');
             btnPause.classList.add('hidden');
+
+            if (isMusicPlaying) {
+                toggleMusic();
+            }
 
             // Phát âm thanh chiến thắng (Tada)
             try {
