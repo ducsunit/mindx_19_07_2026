@@ -243,6 +243,15 @@
         <img src="https://mindx.edu.vn/logo.png" alt="MindX Logo" class="w-24 md:w-32 h-auto">
     </div>
 
+    <!-- Nhạc Nền -->
+    <audio id="bg-music" src="music.mp3" loop></audio>
+
+    <!-- Nút Loa -->
+    <button id="btn-sound"
+        class="absolute top-4 right-4 md:top-8 md:right-8 z-50 bg-white/90 p-3 rounded-full shadow-lg border-2 border-blue-200 hover:scale-105 transition-transform text-3xl flex items-center justify-center w-14 h-14 md:w-16 md:h-16">
+        🔇
+    </button>
+
     <!-- Bầu trời và mây -->
     <div class="cloud cloud1"></div>
     <div class="cloud cloud2"></div>
@@ -326,6 +335,10 @@
         const leftChar = document.getElementById('left-char');
         const rightChar = document.getElementById('right-char');
 
+        const bgMusic = document.getElementById('bg-music');
+        const btnSound = document.getElementById('btn-sound');
+        let isMusicPlaying = false;
+
         const clickSynth = new Tone.Synth({
             oscillator: { type: 'sine' },
             envelope: { attack: 0.01, decay: 0.1, sustain: 0, release: 0.1 }
@@ -347,6 +360,22 @@
         function playClick() {
             try { clickSynth.triggerAttackRelease("C6", "32n"); } catch (e) { }
         }
+
+        // Hàm bật/tắt nhạc nền
+        function toggleMusic() {
+            if (isMusicPlaying) {
+                bgMusic.pause();
+                isMusicPlaying = false;
+                btnSound.textContent = "🔇";
+            } else {
+                bgMusic.play().then(() => {
+                    isMusicPlaying = true;
+                    btnSound.textContent = "🔊";
+                }).catch(e => console.log("Lỗi phát nhạc:", e));
+            }
+        }
+
+        btnSound.addEventListener('click', toggleMusic);
 
         // Tính toán chu vi vòng tròn cho hiệu ứng thanh tiến trình
         const radius = circle.r.baseVal.value;
@@ -404,6 +433,10 @@
         async function startTimer() {
             await Tone.start(); // Khởi tạo AudioContext cho phép phát nhạc (bắt buộc bởi trình duyệt)
             playClick();
+
+            if (!isMusicPlaying) {
+                toggleMusic();
+            }
 
             if (isRunning) return;
             if (timeRemaining <= 0) timeRemaining = TOTAL_SECONDS; // Nếu đã hết, reset rồi chạy
